@@ -1,6 +1,6 @@
 {
   "name": "dsh-nanny-calendar",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Nanny calendar board: onboarding, leave and salary payout tracking, with monthly and all-time totals. 育儿嫂上户 / 休假 / 工资发放日历看板。",
   "type": "module",
   "icon": "./icon.svg",

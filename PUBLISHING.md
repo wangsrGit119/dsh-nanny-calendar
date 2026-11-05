@@ -85,10 +85,52 @@ gate 的结论是快照，会自动重跑，约 24 小时后自己变绿。
 | --- | --- | --- |
 | 仓库年龄门槛 | **等 ~24 小时自动放行** | 不用推空提交、不用重开 PR |
 | PR 合并 | 等维护者 | 绿了之后进合并队列，合并后站点自动重建，条目出现在 `ui` 分类 |
-| npm 发布 | **未做** | `npm whoami` 仍返回 E401，本地 token 已失效，需要先 `npm login` |
+| npm 发布 | **1.0.0 曾发布成功但已作废** | 详见下文「npm 发布：真实状态」；下次需发 `1.0.1`，且要等 2026-11-06 16:39（北京时间）解锁 |
 | 下载量展示 | 依赖 npm | 不发 npm 不影响收录，只是市场没有下载数字 |
 
-### npm 发布：走 OIDC 可信发布（trusted publishing）
+### npm 发布：真实状态（2026-11-05 16:45 更新）
+
+**账号 2FA 已开启**（`tfa.mode = auth-and-writes`），认证方式是**浏览器安全密钥 / passkey（WebAuthn）**，
+不是 TOTP 应用。这就是「没有收到 6 位动态码」的原因——npm 在 WebAuthn 模式下根本不发码。
+
+npm 给这类账号的机制是**一次性短令牌**（web OTP）：
+
+1. 一个需要 OTP 的请求（例如 `PUT /dsh-nanny-calendar`）返回 401，body 是
+   `{"authUrl":"https://www.npmjs.com/auth/cli/<uuid>","doneUrl":"https://registry.npmjs.org/-/v1/done?authId=<uuid>"}`
+   （只有当请求头带 `npm-auth-type: web` 时才返回这两个 URL，否则只有一句「请用 --otp」）。
+2. 浏览器打开 `authUrl`，用安全密钥确认。
+3. `GET doneUrl` 返回 `{"token":"<16 位>"}`，**这个 token 就是 `--otp` 的值**，一次性、约 5 分钟有效。
+
+已封装成脚本，不用再手工拼：
+
+```sh
+cd D:\dsh-workspace\dsh-nanny-calendar
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\publish-now.ps1
+```
+
+脚本会：探出 authUrl → 自动打开浏览器 → 轮询 doneUrl 拿一次性令牌 → `npm publish --otp=<token>`。
+加 `-DryRun` 只演练不发布。
+
+**当前发布状态（重要）**：
+
+| 时间 | 事件 |
+| --- | --- |
+| 2026-11-05 16:37 | `npm publish` 成功，`dsh-nanny-calendar@1.0.0` 上了 registry；registry 同时自动建了一个 `0.0.0-stage` 占位版本（新包正常现象） |
+| 2026-11-05 16:39 | 尝试删除 `0.0.0-stage` 占位版本时，DELETE 打到了整个包上，**把整个包 unpublish 了** |
+
+后果（npm 官方政策原文）：
+
+- `dsh-nanny-calendar@1.0.0` **永久作废**，同一个版本号再也不能用（"Once package@version has been used, you can never use it again"）。
+- 整个包被 unpublish 后，**24 小时内不能再发布任何版本**（"you may not publish any new versions of that package until 24 hours have passed"）。
+- 解锁时间：**UTC 2026-11-06 08:39 / 北京时间 2026-11-06 16:39**。
+- registry 上留下一条 tombstone：`npm view dsh-nanny-calendar` 报 `404 Unpublished on 2026-11-05T08:39:55.452Z`。
+
+所以下次发布**必须是 1.0.1**（脚本检测到版本作废会自动 bump patch 并重试）。
+
+**教训**：新包首次发布后出现的 `0.0.0-stage` 占位版本**不要去清理**，它不影响 `latest` 标签，
+也不影响安装；清理它的唯一后果是把整个包删掉并锁名 24 小时。
+
+### npm 发布：走 OIDC 可信发布（CI 方案，尚未启用）
 
 **为什么不用本地 token**：npm 现在的规则是——发布包必须满足其一：
 ① 账号开了 2FA（发布时给 OTP），② 用勾选了 Bypass 2FA 的 granular token。
