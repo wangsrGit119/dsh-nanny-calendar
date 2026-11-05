@@ -105,9 +105,13 @@ gate 的结论是快照，会自动重跑，约 24 小时后自己变绿。
 
 - 触发：推 `v*` tag 或手动 `workflow_dispatch`。
 - 权限：`id-token: write`（OIDC 必需）+ `contents: read`。
-- 步骤：checkout → setup-node(24, registry-url=npmjs.org, 关缓存) → `npm install -g npm@^11.15.0`
-  （可信发布要求 npm ≥ 11.5.1 / node ≥ 22.14）→ 校验 tag 与 `package.json` 版本一致
-  → `node --check` 两个入口 → `npm publish`。
+- 步骤：checkout → setup-node(24，**不设 `registry-url`**，关缓存) → `npm install -g npm@^11.15.0`
+  （可信发布要求 npm ≥ 11.5.1 / node ≥ 22.14）→ 确认 `.npmrc` 里没有残留 `_authToken`
+  → 校验 tag 与 `package.json` 版本一致 → `node --check` 两个入口 → `npm publish`。
+- **为什么不设 `registry-url`**：setup-node 会写
+  `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}`，而 OIDC 流程里根本没有 token。
+  npm 遇到引用了未设置环境变量的 `.npmrc` 行会直接报错，残留的占位 token 还可能抢在 OIDC
+  交换之前被当成凭据。默认 registry 本来就是 `registry.npmjs.org`，不需要显式指定。
 
 **首次发布（包还不存在）需要「待验证的可信发布配置」**：npm 文档规定，新建的可信发布配置
 必须在 2 天内完成第一次成功发布，否则过期。对全新包，这个配置在 npmjs.com 上以

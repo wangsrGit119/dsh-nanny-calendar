@@ -16,15 +16,28 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # No registry-url on purpose: setup-node would write
+      # `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` into .npmrc, and with
+      # trusted publishing there is no token. An .npmrc line that references an
+      # unset env var makes npm abort, and a token (even a placeholder) can shadow
+      # the OIDC exchange. The default registry is registry.npmjs.org anyway.
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
           package-manager-cache: false # never use caching in release builds
 
       # Trusted publishing requires npm >= 11.5.1 and node >= 22.14.
       - name: Upgrade npm
         run: npm install -g npm@^11.15.0
+
+      - name: Confirm no token is configured
+        run: |
+          npm config delete //registry.npmjs.org/:_authToken || true
+          echo "registry=$(npm config get registry)"
+          echo "npm=$(npm --version) node=$(node --version)"
+          if npm config get //registry.npmjs.org/:_authToken >/dev/null 2>&1; then
+            echo "::warning::an auth token is still configured; OIDC may be skipped"
+          fi
 
       - name: Check tag matches package version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -33,11 +46,6 @@ jobs:
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           echo "package=$PKG_VERSION tag=$TAG_VERSION"
           test "$PKG_VERSION" = "$TAG_VERSION"
-
-      # setup-node writes an .npmrc with _authToken=${NODE_AUTH_TOKEN}; with OIDC
-      # there is no token, and an empty one can shadow the OIDC exchange.
-      - name: Drop placeholder auth token (OIDC only)
-        run: npm config delete //registry.npmjs.org/:_authToken || true
 
       - name: Syntax check
         run: |
