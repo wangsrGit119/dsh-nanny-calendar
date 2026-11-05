@@ -88,13 +88,63 @@ gate 的结论是快照，会自动重跑，约 24 小时后自己变绿。
 | npm 发布 | **未做** | `npm whoami` 仍返回 E401，本地 token 已失效，需要先 `npm login` |
 | 下载量展示 | 依赖 npm | 不发 npm 不影响收录，只是市场没有下载数字 |
 
-### npm 发布（可选，做了体验更好）
+### npm 发布：走 OIDC 可信发布（trusted publishing）
+
+**为什么不用本地 token**：npm 现在的规则是——发布包必须满足其一：
+① 账号开了 2FA（发布时给 OTP），② 用勾选了 Bypass 2FA 的 granular token。
+本机那个 token 两者都不满足，所以 `npm publish` 直接 403：
+
+```
+403 Two-factor authentication or granular access token with bypass 2fa enabled is required to publish packages.
+```
+
+注意 **可信发布不能绕过 2FA**：它同样要求账号已开启 2FA，只是把「每次发布输 OTP」换成了
+「GitHub Actions 用 OIDC 短期凭证」。所以 2FA 是前置条件，不是可选项。
+
+**已就绪的产物**：`.github/workflows/publish.yml`
+
+- 触发：推 `v*` tag 或手动 `workflow_dispatch`。
+- 权限：`id-token: write`（OIDC 必需）+ `contents: read`。
+- 步骤：checkout → setup-node(24, registry-url=npmjs.org, 关缓存) → `npm install -g npm@^11.15.0`
+  （可信发布要求 npm ≥ 11.5.1 / node ≥ 22.14）→ 校验 tag 与 `package.json` 版本一致
+  → `node --check` 两个入口 → `npm publish`。
+
+**首次发布（包还不存在）需要「待验证的可信发布配置」**：npm 文档规定，新建的可信发布配置
+必须在 2 天内完成第一次成功发布，否则过期。对全新包，这个配置在 npmjs.com 上以
+「pending trusted publisher」形式创建，之后第一次 CI 发布把它绑定到仓库的不可变身份。
+
+操作顺序（2FA 那两步只能人来点）：
+
+1. 开启账号 2FA：<https://www.npmjs.com/settings/wangsr/tfa> → 选 **Authentication and writes**。
+2. 创建可信发布配置：npmjs.com → 包设置（新包在 *Pending trusted publishers* 页面）→
+   GitHub Actions → 填
+   - Organization or user: `wangsrGit119`
+   - Repository: `dsh-nanny-calendar`
+   - Workflow filename: `publish.yml`
+   - Allowed actions: 勾 **npm publish**
+3. 我来推 tag：
+
+   ```sh
+   cd D:\dsh-workspace\dsh-nanny-calendar
+   git tag v1.0.0 && git push origin v1.0.0
+   ```
+
+4. Actions 跑完，包就出现在 registry 上，且绑定到该仓库。
+
+**以后的版本**：改版本号 → 推新 tag（`v1.1.0`）→ 自动发布。不再需要任何本地 token。
+
+**命令行等价物**（可选，npm ≥ 11.15.0；需要 2FA 的 OTP）：
 
 ```sh
-cd D:\dsh-workspace\dsh-nanny-calendar
-npm login --registry=https://registry.npmjs.org     # 需要交互输入，token 已失效必须重登
-npm publish --registry=https://registry.npmjs.org  # 包名 dsh-nanny-calendar 未被占用
+npm trust github dsh-nanny-calendar --file publish.yml --allow-publish --otp <code>
+npm trust list dsh-nanny-calendar
 ```
+
+`--repo` 省略时会从 `package.json` 的 `repository` 字段推断（本仓库已指向
+`github.com/wangsrGit119/dsh-nanny-calendar`，所以能推断出来）。
+
+**手工发布的兜底**（万一不想用 CI）：开了 2FA 后
+`npm publish --registry=https://registry.npmjs.org --otp <code>` 即可，一次一个动态码。
 
 发布 npm 的两个好处：市场能显示下载量；用户安装时走预构建包，免掉 `allowBuilds` 构建授权。
 `repository` 字段已指回被收录的仓库，所以两者会自动关联，**不需要**在 yml 里加任何 `npm:` 字段
