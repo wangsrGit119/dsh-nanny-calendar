@@ -106,9 +106,20 @@ npm publish --registry=https://registry.npmjs.org  # 包名 dsh-nanny-calendar �
 
 ## 四、用户怎么装
 
-```sh
-dsh plugin add github:wangsrGit119/dsh-nanny-calendar
-```
+三种方式（README 里也写了同样的三条）：
+
+1. DSH 的「插件」面板 → 安装来源 GitHub → `wangsrGit119/dsh-nanny-calendar`
+   （等价 `plugin_manager` 的 `install_bundle`，`target: github:wangsrGit119/dsh-nanny-calendar`）。
+2. 命令行，**`--profile` 必填**，指向要装进去的那个 profile：
+   ```sh
+   dsh plugin --profile desktop add github:wangsrGit119/dsh-nanny-calendar
+   ```
+   不带 `--profile` 会直接报 `required option '--profile <name>' not specified`。
+3. 克隆后对目录执行 `install_bundle`（本地 link，适合改代码）。
+
+安装链路已实测：在临时目录里 `pnpm add github:wangsrGit119/dsh-nanny-calendar` 成功，
+拉到的正是仓库里的 8 个运行时文件（client.js / index.js / cordis.patch.yml / locale ×2 / icon.svg / package.json / README.md），
+版本解析为 `1.0.0`——说明 `github:` 这个 spec 对 pnpm 有效、`files` 白名单生效、没有把 assets/ 之类的大文件带进安装包。
 
 ## 五、以后发新版本
 
@@ -124,5 +135,8 @@ dsh plugin add github:wangsrGit119/dsh-nanny-calendar
   最后 README 那次改动改用 GitHub Contents API 提交，绕过 git 传输。
 - `awesome-dsh-plugin` 的 `data/screenshots.json` 是**旧条目**的截图登记处，已冻结，**不要再往里面加键**；
   新条目一律在自己仓库放 `screenshots.json`。
-- 本机 `dsh` CLI 是 0.1.0-rc.5，比核心包 0.2.2-rc.1 旧；`dsh plugin` 子命令会初始化一个无关 profile，
-  别用它来验证安装。
+- 本机 `dsh` CLI 是 0.1.0-rc.5，比核心包 0.2.2-rc.1 旧；它本身可用，但 `plugin` 子命令必须显式带
+  `--profile <name>`（否则报 `required option '--profile <name>' not specified`），
+  不带时它会把后面的参数当成 pnpm 的参数转发，容易误装到无关 profile。
+- 仓库创建时间 `2026-11-05T06:52:46Z`，所以 `Submission gate` 的自动放行时间点是
+  **UTC 2026-11-06 06:52（北京时间 2026-11-06 14:52）**。
