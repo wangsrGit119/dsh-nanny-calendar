@@ -34,6 +34,11 @@ jobs:
           echo "package=$PKG_VERSION tag=$TAG_VERSION"
           test "$PKG_VERSION" = "$TAG_VERSION"
 
+      # setup-node writes an .npmrc with _authToken=${NODE_AUTH_TOKEN}; with OIDC
+      # there is no token, and an empty one can shadow the OIDC exchange.
+      - name: Drop placeholder auth token (OIDC only)
+        run: npm config delete //registry.npmjs.org/:_authToken || true
+
       - name: Syntax check
         run: |
           node --check index.js
