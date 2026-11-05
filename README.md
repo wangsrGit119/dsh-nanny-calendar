@@ -35,13 +35,20 @@ icon.svg           插件图标
 
 ## 安装
 
-从源码安装（推荐，任何版本都适用）：
+三种方式，任选其一：
 
-```sh
-dsh plugin add github:wangsrGit119/dsh-nanny-calendar
-```
+1. **在 DSH 里从 GitHub 安装**（推荐）——打开「插件」面板，选安装来源为 GitHub，填 `wangsrGit119/dsh-nanny-calendar`；等价于让 `plugin_manager` 执行 `install_bundle`，`target: github:wangsrGit119/dsh-nanny-calendar`。
+2. **命令行**（`--profile` 必填，指向要装进的那个 profile）：
 
-或在 DSH 里对该目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link）。安装后侧边栏出现日历图标；卸载或停用后记录仍留在 `localStorage` 中。
+   ```sh
+   dsh plugin --profile desktop add github:wangsrGit119/dsh-nanny-calendar
+   ```
+
+3. **本地目录**：克隆后对仓库目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link，适合改代码）。
+
+安装后侧边栏出现日历图标；卸载或停用后记录仍留在 `localStorage` 中。
+
+> 仓库已声明 `dsh.bundle`，所以安装时会读取 `cordis.patch.yml` 把插件挂进 profile；只有 `dsh.client` 的包无法被安装。
 
 ## 仓库结构补充
 
