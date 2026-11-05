@@ -1,0 +1,57 @@
+{
+  "name": "dsh-nanny-calendar",
+  "version": "1.0.0",
+  "description": "Nanny calendar board: onboarding, leave and salary payout tracking, with monthly and all-time totals. 育儿嫂上户 / 休假 / 工资发放日历看板。",
+  "type": "module",
+  "icon": "./icon.svg",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "calendar",
+    "nanny",
+    "payroll",
+    "育儿嫂",
+    "日历",
+    "工资"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangsrGit119/dsh-nanny-calendar.git"
+  },
+  "homepage": "https://github.com/wangsrGit119/dsh-nanny-calendar#readme",
+  "bugs": {
+    "url": "https://github.com/wangsrGit119/dsh-nanny-calendar/issues"
+  },
+  "author": "wangsrGit119",
+  "engines": {
+    "dsh": ">=0.2.1-rc.1 <0.3.0-0 || >=0.2.2-rc.1 <0.3.0-0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  }
+}
