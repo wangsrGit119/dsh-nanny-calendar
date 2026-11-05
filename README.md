@@ -35,7 +35,20 @@ icon.svg           插件图标
 
 ## 安装
 
-在 DSH 里对该目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link），安装后侧边栏出现日历图标。卸载或停用后记录仍留在 `localStorage` 中。
+从源码安装（推荐，任何版本都适用）：
+
+```sh
+dsh plugin add github:wangsrGit119/dsh-nanny-calendar
+```
+
+或在 DSH 里对该目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link）。安装后侧边栏出现日历图标；卸载或停用后记录仍留在 `localStorage` 中。
+
+## 仓库结构补充
+
+```
+screenshots.json   市场详情页截图声明（assets/screenshot-1.png）
+assets/            市场卡片图标 icon-180.png 与界面截图
+```
 
 ## 备注
 
