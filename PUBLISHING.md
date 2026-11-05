@@ -67,20 +67,24 @@ icon: https://raw.githubusercontent.com/wangsrGit119/dsh-nanny-calendar/main/ass
 - 分支：`add-wangsrGit119-dsh-nanny-calendar`
 - **PR #12221**：<https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12221>
 
-## 三、状态（截至 2026-11-05 15:12）
+## 三、状态（截至 2026-11-05 15:20）
 
-**CI 全绿**：`PR check` 结论 `success`（2026-11-05T07:10:41Z 完成），15 个步骤全部通过——
-stale-fork guard、文件名/目录、README 一致性、awesome-lint、added-date / capability-disclosure /
-discussion-adoption / entry-path 四组回归测试、`node scripts/build-site.mjs`
-（8880 条目 × 2 语言、站点构建成功）。
+两个 CI 检查，一绿一红，红的那条是**唯一且预期内**的原因：
 
-**PR 状态**：`open`，`mergeable_state = clean`（可合并、无冲突、无 `held: author` 标签）。
-注意本次仓库是当天新建的，1 天年龄门槛没有挡住——`mergeable_state=clean` 说明 gate 已经放行。
-剩下的是等维护者合并。
+| 检查 | 结论 | 说明 |
+| --- | --- | --- |
+| `check`（PR check 工作流） | ✅ `success` | 15 步全过：stale-fork guard、文件名/目录、README 一致性、awesome-lint、added-date / capability-disclosure / discussion-adoption / entry-path 四组回归测试、`node scripts/build-site.mjs`（8880 条目 × 2 语言，站点构建成功） |
+| `Submission gate` | ❌ `failure` | 原文：`repository is 0.0 days old (needs 1) — nothing to do: this check re-runs by itself and should clear in about 24h. No need to resubmit, push, or close and reopen; the age bar is the only thing failing here.` |
+
+即：**除了「仓库满 1 天」这条，其它全部通过**。这条不需要做任何事——
+gate 的结论是快照，会自动重跑，约 24 小时后自己变绿。
+
+**PR 状态**：`open`、只改了 1 个文件（`+7/-0`）、无冲突、无 `held: author` 标签。
 
 | 事项 | 状态 | 说明 |
 | --- | --- | --- |
-| PR 合并 | **等维护者** | CI 绿、无冲突；合并后站点自动重建，条目出现在 `ui` 分类 |
+| 仓库年龄门槛 | **等 ~24 小时自动放行** | 不用推空提交、不用重开 PR |
+| PR 合并 | 等维护者 | 绿了之后进合并队列，合并后站点自动重建，条目出现在 `ui` 分类 |
 | npm 发布 | **未做** | `npm whoami` 仍返回 E401，本地 token 已失效，需要先 `npm login` |
 | 下载量展示 | 依赖 npm | 不发 npm 不影响收录，只是市场没有下载数字 |
 
