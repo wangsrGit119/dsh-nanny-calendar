@@ -126,6 +126,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\publish-now.ps1
 - registry 上留下一条 tombstone：`npm view dsh-nanny-calendar` 报 `404 Unpublished on 2026-11-05T08:39:55.452Z`。
 
 所以下次发布**必须是 1.0.1**（脚本检测到版本作废会自动 bump patch 并重试）。
+实测确认：`1.0.1` 在锁定期内同样是 403 `cannot be republished until 24 hours have passed`，
+换版本号不能绕过，只能等锁到期。
 
 **教训**：新包首次发布后出现的 `0.0.0-stage` 占位版本**不要去清理**，它不影响 `latest` 标签，
 也不影响安装；清理它的唯一后果是把整个包删掉并锁名 24 小时。

@@ -61,11 +61,14 @@ function Get-WebOtp {
   $authUrl = $null; $doneUrl = $null
 
   for ($i = 1; $i -le 5; $i++) {
+    $raw = $null
     try {
       Invoke-WebRequest -Uri "https://registry.npmjs.org/$name" -Method PUT -Body $probeBody -Headers $headers -UseBasicParsing -TimeoutSec 30 | Out-Null
       throw 'UNEXPECTED: request succeeded without OTP'
     } catch {
       $raw = $_.ErrorDetails.Message
+      if ($raw -match 'cannot be republished until 24 hours') { return 'LOCKED' }
+      if ($raw -match 'cannot be reused|already been used|previously published') { return 'BURNED' }
       if ($raw) {
         try {
           $j = $raw | ConvertFrom-Json
@@ -75,7 +78,7 @@ function Get-WebOtp {
       Start-Sleep -Seconds 3
     }
   }
-  if (-not $authUrl) { throw 'Could not start an npm web-auth session' }
+  if (-not $authUrl) { throw "Could not start an npm web-auth session (last body: $raw)" }
 
   Write-Host "AUTH_URL  $authUrl"
   Write-Host "DONE_URL  $doneUrl"
@@ -137,6 +140,23 @@ if ($DryRun) {
 
 $token = Get-NpmToken
 $otp = Get-WebOtp -Token $token -Minutes $Minutes
+
+if ($otp -eq 'LOCKED' -or $otp -eq 'BURNED') {
+  Write-Host ''
+  Write-Host 'The registry refused the publish before asking for a pass.' -ForegroundColor Yellow
+  Write-Host 'A previously unpublished package name stays locked for 24 hours.' -ForegroundColor Yellow
+  Write-Host 'Bumping the version does not help; wait for the lock to expire.' -ForegroundColor Yellow
+  try {
+    $meta = Invoke-RestMethod -Uri "https://registry.npmjs.org/$($pkg.name)" -TimeoutSec 20
+    $unpublishedAt = $meta.time.unpublished.time
+    if ($unpublishedAt) {
+      $unlock = ([datetimeoffset]::Parse($unpublishedAt)).AddHours(24).ToLocalTime()
+      Write-Host ("Unlocked at: {0} (local time)" -f $unlock.ToString('yyyy-MM-dd HH:mm:ss')) -ForegroundColor Yellow
+    }
+  } catch { }
+  exit 2
+}
+
 Write-Host ''
 Write-Host "got one-time pass ($($otp.Length) chars), publishing..." -ForegroundColor Green
 
@@ -152,6 +172,19 @@ if ($res.ExitCode -eq 0) {
 }
 
 $retryable = $res.Output -match 'cannot be republished|cannot be reused|already been used|previously published'
+
+if ($res.Output -match 'cannot be republished until 24 hours') {
+  Write-Host ''
+  Write-Host 'The package name is locked for 24 hours after the unpublish.' -ForegroundColor Yellow
+  Write-Host 'Bumping the version does not help. Wait for the lock to expire, then re-run this script.' -ForegroundColor Yellow
+  $unpublished = try { (Invoke-RestMethod -Uri "https://registry.npmjs.org/$(Read-Utf8 'package.json' | ConvertFrom-Json | Select-Object -ExpandProperty name)" -TimeoutSec 20).time.unpublished.time } catch { $null }
+  if ($unpublished) {
+    $unlock = ([datetimeoffset]::Parse($unpublished)).AddHours(24).ToLocalTime()
+    Write-Host ("Unlocked at: {0} (local time)" -f $unlock.ToString('yyyy-MM-dd HH:mm:ss')) -ForegroundColor Yellow
+  }
+  exit 2
+}
+
 if (-not $retryable) {
   Write-Host ''
   Write-Host 'Publish failed and the error does not look like a burned version. Not retrying.' -ForegroundColor Red
@@ -170,6 +203,10 @@ Write-Utf8 'package.json' $raw
 
 $token = Get-NpmToken
 $otp = Get-WebOtp -Token $token -Minutes $Minutes
+if ($otp -eq 'LOCKED' -or $otp -eq 'BURNED') {
+  Write-Host "Version $next is not publishable yet (registry lock). Stopping." -ForegroundColor Yellow
+  exit 2
+}
 $res = Invoke-Publish -Otp $otp
 Write-Host $res.Output
 if ($res.ExitCode -eq 0) {
