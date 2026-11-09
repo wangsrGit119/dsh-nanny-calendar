@@ -67,26 +67,25 @@ icon: https://raw.githubusercontent.com/wangsrGit119/dsh-nanny-calendar/main/ass
 - 分支：`add-wangsrGit119-dsh-nanny-calendar`
 - **PR #12221**：<https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/12221>
 
-## 三、状态（截至 2026-11-05 15:20）
+## 三、状态（截至 2026-11-09 09:50）
 
-两个 CI 检查，一绿一红，红的那条是**唯一且预期内**的原因：
+两个 CI 检查最终都是绿的（`check` 一开始就过，`Submission gate` 在仓库满 1 天后自动重跑变绿）：
 
 | 检查 | 结论 | 说明 |
 | --- | --- | --- |
 | `check`（PR check 工作流） | ✅ `success` | 15 步全过：stale-fork guard、文件名/目录、README 一致性、awesome-lint、added-date / capability-disclosure / discussion-adoption / entry-path 四组回归测试、`node scripts/build-site.mjs`（8880 条目 × 2 语言，站点构建成功） |
-| `Submission gate` | ❌ `failure` | 原文：`repository is 0.0 days old (needs 1) — nothing to do: this check re-runs by itself and should clear in about 24h. No need to resubmit, push, or close and reopen; the age bar is the only thing failing here.` |
+| `Submission gate` | ✅ `success`（2026-11-06 12:46 UTC） | 起初红过一次，唯一原因是 `repository is 0.0 days old (needs 1)`；仓库满 1 天后自动重跑变绿，没有做任何操作 |
 
-即：**除了「仓库满 1 天」这条，其它全部通过**。这条不需要做任何事——
-gate 的结论是快照，会自动重跑，约 24 小时后自己变绿。
-
-**PR 状态**：`open`、只改了 1 个文件（`+7/-0`）、无冲突、无 `held: author` 标签。
+**PR 状态**：已合并（`merged: true`），只改了 1 个文件（`+7/-0`）。
+条目文件现已在主干：`data/plugins/wangsrGit119__dsh-nanny-calendar.yml`。
 
 | 事项 | 状态 | 说明 |
 | --- | --- | --- |
-| 仓库年龄门槛 | **等 ~24 小时自动放行** | 不用推空提交、不用重开 PR |
-| PR 合并 | 等维护者 | 绿了之后进合并队列，合并后站点自动重建，条目出现在 `ui` 分类 |
-| npm 发布 | **1.0.0 曾发布成功但已作废** | 详见下文「npm 发布：真实状态」；下次需发 `1.0.1`，且要等 2026-11-06 16:39（北京时间）解锁 |
-| 下载量展示 | 依赖 npm | 不发 npm 不影响收录，只是市场没有下载数字 |
+| 仓库年龄门槛 | ✅ 已放行 | 2026-11-06 12:46 UTC 重跑通过 |
+| PR 合并 | ✅ 已合并 | PR #12221 于 2026-11-06 合并，条目已进 `ui` 分类 |
+| 市场目录 | ✅ 已收录 | `https://awesome-dsh-plugin.com/plugins.json` 里能搜到，`added: 2026-11-06` |
+| npm 发布 | ✅ `1.0.1` 已上线 | 2026-11-09 09:50（北京时间）发布成功，详见下文 |
+| 下载量展示 | 待市场下次重建 | 条目里的 `npm` 字段由 registry 自动采集，当前快照还是 `null`，重建后会自动出现 |
 
 ### npm 发布：真实状态（2026-11-05 16:45 更新）
 
@@ -131,6 +130,43 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\publish-now.ps1
 
 **教训**：新包首次发布后出现的 `0.0.0-stage` 占位版本**不要去清理**，它不影响 `latest` 标签，
 也不影响安装；清理它的唯一后果是把整个包删掉并锁名 24 小时。
+
+### npm 发布：1.0.1 成功（2026-11-09 09:50 北京时间）
+
+`dsh-nanny-calendar@1.0.1` 已上 registry：
+
+- `latest` = `1.0.1`，`npm view dsh-nanny-calendar version` → `1.0.1`
+- tarball：<https://registry.npmjs.org/dsh-nanny-calendar/-/dsh-nanny-calendar-1.0.1.tgz>
+  （20051 B，shasum `a66b32bd88527091563fe2921b0de27d071137b4`，8 个文件）
+- 页面：<https://www.npmjs.com/package/dsh-nanny-calendar>
+- 实测在空目录 `npm install dsh-nanny-calendar` 成功装出 1.0.1。
+
+**怎么发成功的**：`npm publish` 这条路走不通（见下），最终是直接对 registry 发 HTTP `PUT`，
+自己处理 OTP 挑战。脚本：`scripts/publish-http.mjs`（`node scripts/publish-http.mjs`，加 `--dry-run` 只打包不发送）。
+
+流程就三步：
+
+1. `npm pack` 拿到 tgz，算 `sha1`（shasum）与 `sha512`（integrity）。
+2. 用 `~/.npmrc` 里的 token 直接 `PUT https://registry.npmjs.org/<name>`，body 里带
+   `_attachments`（base64 的 tgz）+ 完整 manifest。请求头必须带 `npm-auth-type: web`
+   ——这样 401 的 body 才是 `{authUrl, doneUrl}` 而不是干巴巴一句「请用 --otp」。
+3. 打开 `authUrl`，用安全密钥确认，轮询 `doneUrl` 拿 16 位一次性令牌，把它放进
+   `npm-otp` 头重发同一个 PUT，返回 **202** 即成功。
+
+**为什么不用 `npm publish`**：它拿到 401 后调 `otplease()`，在没有 TTY 的环境里打不开浏览器，
+报 `Exit handler never called!` 就没了。自己发 PUT 反而能完整走完 WebAuthn 流程。
+
+**另外踩到的两个坑**：
+
+- 第一次 PUT 之后立刻再发，会 409 `Failed to save packument. A common cause is if you try to
+  publish a new package before the previous package has been fully processed.`。等 1–2 分钟即可；
+  判断是否已就绪：用假 shasum 探针 PUT，返回 `400 Must include a tarball for new versions.`
+  （而不是 409）说明写路径已经通畅。
+- 发完 registry 会先建一个 `0.0.0-stage` 占位版本、`latest` 短暂指向它，几秒后自动切到真版本。
+  别慌，更**别去删它**（上一个版本就是这么把整个包删掉的）。
+
+**长期 token**：`scripts/npm-login.ps1` 走 `POST /-/v1/login`（必须带 `npm-command: login` 头）
+拿 40 字符 token 写回 `~/.npmrc`。token 会过期，发布报 401 时先跑它。
 
 ### npm 发布：走 OIDC 可信发布（CI 方案，尚未启用）
 
@@ -204,28 +240,37 @@ npm trust list dsh-nanny-calendar
 
 ## 四、用户怎么装
 
-三种方式（README 里也写了同样的三条）：
+四种方式（README 里也写了同样的几条）：
 
-1. DSH 的「插件」面板 → 安装来源 GitHub → `wangsrGit119/dsh-nanny-calendar`
+1. **npm（最快）**：DSH 的「插件」面板 → 安装来源 npm → `dsh-nanny-calendar`，
+   或命令行 `dsh plugin --profile desktop add dsh-nanny-calendar`。
+   已实测：空目录 `npm install dsh-nanny-calendar` 能装出 1.0.1 的 8 个运行时文件。
+2. DSH 的「插件」面板 → 安装来源 GitHub → `wangsrGit119/dsh-nanny-calendar`
    （等价 `plugin_manager` 的 `install_bundle`，`target: github:wangsrGit119/dsh-nanny-calendar`）。
-2. 命令行，**`--profile` 必填**，指向要装进去的那个 profile：
+3. 命令行，**`--profile` 必填**，指向要装进去的那个 profile：
    ```sh
    dsh plugin --profile desktop add github:wangsrGit119/dsh-nanny-calendar
    ```
    不带 `--profile` 会直接报 `required option '--profile <name>' not specified`。
-3. 克隆后对目录执行 `install_bundle`（本地 link，适合改代码）。
+4. 克隆后对目录执行 `install_bundle`（本地 link，适合改代码）。
 
 安装链路已实测：在临时目录里 `pnpm add github:wangsrGit119/dsh-nanny-calendar` 成功，
 拉到的正是仓库里的 8 个运行时文件（client.js / index.js / cordis.patch.yml / locale ×2 / icon.svg / package.json / README.md），
 版本解析为 `1.0.0`——说明 `github:` 这个 spec 对 pnpm 有效、`files` 白名单生效、没有把 assets/ 之类的大文件带进安装包。
 
+> `dshmarket` 认裸 npm 包名（`NPM_NAME_RE`），`installTargetFor` 会把裸名当作 npm spec 处理，
+> 所以面板里填 `dsh-nanny-calendar` 就能装，不需要 `npm:` 前缀。
+
 ## 五、以后发新版本
 
-1. 改代码，`npm version patch`（或手改 `package.json` 的 version）。
-2. `git push`。
-3. 如果发了 npm：`npm publish`；没发 npm 就在 GitHub 上打个 Release（tag 用 `v1.2.3`）。
+1. 改代码，`npm version patch`（或手改 `package.json` 的 version），`git push`。
+2. 发 npm：`node scripts/publish-http.mjs`（token 过期就先跑 `scripts/npm-login.ps1`）。
+   或者打 `v*` tag 走 CI（需先在 npmjs.com 配好可信发布，见上一节）。
+3. 没发 npm 就在 GitHub 上打个 Release（tag 用 `v1.2.3`）。
 4. 市场不需要改动——条目指向仓库，安装时拉最新；截图推自己仓库即生效。
    只有**描述/分类/图标**变了才需要再来提 PR（仍然只改自己那一个 yml）。
+   条目里的 `npm` / `version` / `downloads` 字段由市场构建脚本从 registry 自动采集，
+   当前快照是 `null`，下次重建就会填上 `dsh-nanny-calendar` 与下载量。
 
 ## 六、踩过的坑（值得记）
 
