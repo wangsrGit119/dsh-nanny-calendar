@@ -2,6 +2,8 @@
 
 育儿嫂日历看板 / Nanny calendar board — 一个 DeepSeek Harness 侧边栏插件，记录育儿嫂的**上户 / 下户 / 休假 / 工资发放**，并按月汇总。
 
+已发布到 npm：<https://www.npmjs.com/package/dsh-nanny-calendar>（当前 `1.0.1`）。
+
 ## 功能
 
 - **侧边栏入口**：注册 `sidebar.panellist`（id `nanny-calendar`，order 20）与同名 `main` 面板，点击图标进入整页日历。
@@ -35,16 +37,22 @@ icon.svg           插件图标
 
 ## 安装
 
-三种方式，任选其一：
+四种方式，任选其一：
 
-1. **在 DSH 里从 GitHub 安装**（推荐）——打开「插件」面板，选安装来源为 GitHub，填 `wangsrGit119/dsh-nanny-calendar`；等价于让 `plugin_manager` 执行 `install_bundle`，`target: github:wangsrGit119/dsh-nanny-calendar`。
-2. **命令行**（`--profile` 必填，指向要装进的那个 profile）：
+1. **从 npm 安装**（最快，无需构建）——打开「插件」面板，安装来源选 npm，填 `dsh-nanny-calendar`；等价于让 `plugin_manager` 执行 `install_bundle`，`target: npm:dsh-nanny-calendar`。
+
+   ```sh
+   dsh plugin --profile desktop add dsh-nanny-calendar
+   ```
+
+2. **在 DSH 里从 GitHub 安装**——打开「插件」面板，选安装来源为 GitHub，填 `wangsrGit119/dsh-nanny-calendar`；等价于 `install_bundle`，`target: github:wangsrGit119/dsh-nanny-calendar`。
+3. **命令行**（`--profile` 必填，指向要装进的那个 profile）：
 
    ```sh
    dsh plugin --profile desktop add github:wangsrGit119/dsh-nanny-calendar
    ```
 
-3. **本地目录**：克隆后对仓库目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link，适合改代码）。
+4. **本地目录**：克隆后对仓库目录执行 `plugin_manager` 的 `install_bundle`（本地目录安装会做成 link，适合改代码）。
 
 安装后侧边栏出现日历图标；卸载或停用后记录仍留在 `localStorage` 中。
 
